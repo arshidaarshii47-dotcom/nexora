@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXORA</title>
+<style>
+:root{--bg:#0d1020;--panel:#171c32;--panel2:#202744;--text:#f4f5ff;--muted:#aab1ca;--accent:#a78bfa;--accent2:#67e8d1}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#25234a 0,#0d1020 45%);color:var(--text);font-family:Arial,sans-serif;min-height:100vh}
+.wrap{max-width:1000px;margin:auto;padding:28px 18px 60px}.brand{font-size:13px;letter-spacing:5px;color:var(--accent2);font-weight:bold}
+h1{font-size:clamp(34px,7vw,54px);margin:10px 0 5px;letter-spacing:2px}.sub{color:var(--muted);margin:0 0 26px}
+.panel{background:rgba(23,28,50,.94);border:1px solid #303958;border-radius:18px;padding:22px;box-shadow:0 16px 45px #0004}
+.center{max-width:430px;margin:12vh auto;text-align:center}.lock{font-size:34px;margin-bottom:10px}
+input,select,textarea{width:100%;padding:13px 14px;border-radius:10px;border:1px solid #3b4567;background:#10162a;color:var(--text);font:inherit;margin:7px 0 12px}
+textarea{min-height:150px;resize:vertical;font-family:Consolas,monospace}
+button{border:0;border-radius:10px;padding:11px 16px;background:var(--accent);color:#171329;font-weight:bold;cursor:pointer}
+button.secondary{background:#303958;color:var(--text)}button.danger{background:#633b50;color:#fff}
+button:hover{filter:brightness(1.12)}.hint{font-size:12px;color:var(--muted);line-height:1.5}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:1fr 1.2fr;gap:18px}.item{background:#11172b;border:1px solid #303958;border-radius:12px;padding:15px;margin:10px 0}
+.item h3{margin:0 0 5px}.tag{font-size:11px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#090e1d;padding:13px;border-radius:9px;color:#d8dcf5;max-height:260px;overflow:auto;font:13px/1.5 Consolas,monospace}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.empty{color:var(--muted);text-align:center;padding:24px}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.wrap{padding:20px 13px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section id="login" class="panel center">
+    <div class="brand">A PRIVATE SPACE</div><div class="lock">✦</div>
+    <h1>NEXORA</h1><p class="sub">Your own little corner.</p>
+    <label for="password">Enter your password</label>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+    <button style="width:100%" onclick="unlock()">Enter</button>
+    <p id="error" class="hint" aria-live="polite"></p>
+    <p class="hint">Demo access password: <b>Nexora27</b><br>This is a basic front-end lock, not secure private storage.</p>
+  </section>
+
+  <main id="app" hidden>
+    <header><div><div class="brand">A PRIVATE SPACE</div><h1>NEXORA</h1><p class="sub">A place to keep your notes and snippets.</p></div><button class="secondary" onclick="lock()">Lock</button></header>
+    <div class="grid">
+      <section class="panel">
+        <h2>Add a new note</h2>
+        <label for="title">Title</label><input id="title" placeholder="Give it a name">
+        <label for="category">Collection</label>
+        <select id="category"><option>Collection 1</option><option>Collection 2</option><option>Collection 3</option><option>Collection 4</option><option>Other</option></select>
+        <label for="code">Content</label><textarea id="code" placeholder="Paste your text here..."></textarea>
+        <button onclick="addItem()">Save</button>
+        <p class="hint">Saved in this browser on this device. Export a backup before clearing browser data.</p>
+      </section>
+      <section class="panel">
+        <h2>Your saved items</h2>
+        <input id="search" placeholder="Search..." oninput="render()">
+        <select id="filter" onchange="render()"><option value="">All collections</option><option>Collection 1</option><option>Collection 2</option><option>Collection 3</option><option>Collection 4</option><option>Other</option></select>
+        <div id="items"></div>
+        <div class="actions"><button class="secondary" onclick="exportBackup()">Export backup</button><button class="secondary" onclick="document.getElementById('importFile').click()">Import backup</button><input id="importFile" type="file" accept="application/json" hidden onchange="importBackup(event)"></div>
+      </section>
+    </div>
+  </main>
+</div>
+<script>
+const PASS = "Nexora27";
+const KEY = "nexora_items_v1";
+let items = [];
+try { items = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch(e) { items = []; }
+function unlock(){
+  const p=document.getElementById("password").value;
+  if(p===PASS){document.getElementById("login").hidden=true;document.getElementById("app").hidden=false;document.getElementById("error").textContent="";render();}
+  else document.getElementById("error").textContent="That password doesn't match. Try again.";
+}
+document.getElementById("password").addEventListener("keydown",e=>{if(e.key==="Enter")unlock()});
+function lock(){document.getElementById("app").hidden=true;document.getElementById("login").hidden=false;document.getElementById("password").value="";}
+function save(){localStorage.setItem(KEY,JSON.stringify(items));}
+function addItem(){
+  const title=document.getElementById("title").value.trim(), content=document.getElementById("code").value;
+  if(!title||!content.trim()){alert("Please enter a title and some content.");return;}
+  items.unshift({id:Date.now(),title,category:document.getElementById("category").value,content});
+  save();document.getElementById("title").value="";document.getElementById("code").value="";render();
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function render(){
+  const q=document.getElementById("search").value.toLowerCase(), f=document.getElementById("filter").value;
+  const list=items.filter(x=>(!f||x.category===f)&&(x.title+" "+x.content+" "+x.category).toLowerCase().includes(q));
+  const root=document.getElementById("items");
+  if(!list.length){root.innerHTML='<div class="empty">Nothing saved yet. Add your first item.</div>';return;}
+  root.innerHTML=list.map(x=>`<article class="item"><div class="tag">${esc(x.category)}</div><h3>${esc(x.title)}</h3><pre id="content-${x.id}">${esc(x.content)}</pre><div class="actions"><button onclick="copyItem(${x.id})">Copy</button><button class="danger" onclick="removeItem(${x.id})">Delete</button></div></article>`).join("");
+}
+function copyItem(id){const x=items.find(i=>i.id===id);if(!x)return;navigator.clipboard.writeText(x.content).then(()=>alert("Copied!")).catch(()=>alert("Copy isn't available here. Select the text and copy it manually."));}
+function removeItem(id){if(confirm("Delete this saved item?")){items=items.filter(x=>x.id!==id);save();render();}}
+function exportBackup(){const blob=new Blob([JSON.stringify(items,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="nexora-backup.json";a.click();URL.revokeObjectURL(a.href);}
+function importBackup(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!Array.isArray(data))throw 0;items=data;save();render();alert("Backup imported.");}catch(err){alert("That backup file is not valid.");}};r.readAsText(file);e.target.value="";}
+</script>
+</body>
+</html>
